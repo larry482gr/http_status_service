@@ -5,15 +5,6 @@ import logging
 REQUESTS_COUNT = Counter('sample_external_url_up', 'Status request count', ['url'])
 RESPONSE_TIMES = Histogram('sample_external_url_response_ms', 'Time spent processing a status page', ['url'])
 
-# DISCLAIMER
-#
-# In the assignment description it is mentioned that the service queries 2 URLs
-# then also that it will check the respective URLs
-# It is not clear whether the service will check all URLs at once or based on some query (in the format of self.path for example)
-# Then in the expected output you show results for both URLs, but with different counters
-# For the time being the service queries both URLs at once, thus the Counter metric will always increase for both
-# If that matters maybe we can elaborate more in an online discussion...
-
 class HttpHandler(MetricsHandler):
     '''
     Class description...
@@ -26,20 +17,19 @@ class HttpHandler(MetricsHandler):
         response_html = "<html><head><title>Status page</title></head><body>{}</body></html>"
         response_body = ""
         for url in urls:
+            request_successful = 0
             response = requests.get(url)
 
-            # Assignment mentions check if the two urls are up (based on http status code 200),
-            # but apparently https://httpstat.us/503 returns 503... as expected!
-            if response.status_code not in [ 200, 503 ]:
-                # Most probably we would like to implement some error handling here
-                # But not in the scope of this home assignment
-                return
+            # Set user output to 1 and `increment` successful requests on 200 HTTP status code
+            if response.status_code == 200:
+                request_successful = 1
+                self.inc_metric(REQUESTS_COUNT, url)
 
+            # Set current response in milliseconds for user output and `observe` the respective value (in seconds)
             response_timi_millis = response.elapsed.microseconds/1000.0
-            self.inc_metric(REQUESTS_COUNT, url)
-            self.obs_metric(RESPONSE_TIMES, url, response_timi_millis)
+            self.obs_metric(RESPONSE_TIMES, url, response.elapsed.total_seconds())
 
-            response_body += self.get_html_response_for_url(url, response_timi_millis)
+            response_body += self.get_html_response_for_url(url, request_successful, response_timi_millis)
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -64,11 +54,11 @@ class HttpHandler(MetricsHandler):
         except Exception as e:
             logging.warning(f'Could not emit prometheus observe event. {e}')
 
-    def get_html_response_for_url(self, url, response_timi_millis):
+    def get_html_response_for_url(self, url, request_successful, response_timi_millis):
         '''
         Method description...
         '''
-        response = "<p>{}{{url=\"{}\"}} = {}</p>".format(REQUESTS_COUNT.labels(url)._name, url, int(REQUESTS_COUNT.labels(url)._value.get()))
+        response = "<p>{}{{url=\"{}\"}} = {}</p>".format(REQUESTS_COUNT.labels(url)._name, url, request_successful)
         response += "<p>{}{{url=\"{}\"}} = {}</p>".format(RESPONSE_TIMES.labels(url)._name, url, response_timi_millis)
 
         return response
