@@ -25,6 +25,8 @@ class HttpHandler(MetricsHandler):
                 request_successful = 1
                 self.inc_metric(REQUESTS_COUNT, url)
 
+            # TODO Most probably we should add another metric and an else condition to count error responses, not in scope of this assessment
+
             # Set current response in milliseconds for user output and `observe` the respective value (in seconds)
             response_timi_millis = response.elapsed.microseconds/1000.0
             self.obs_metric(RESPONSE_TIMES, url, response.elapsed.total_seconds())
