@@ -17,7 +17,12 @@ You may run the project locally either from source or in a docker container.
 ### From source code
 
 1. Install python (https://www.python.org/downloads/)
-2. Navigate to the project root directory, install dependencies and run the project.
+2. You might also need to install `pip`.
+
+    a. Ubuntu: `sudo apt update && sudo apt install python3-pip`
+    b. MacOS: `brew install python` (pip is part of this formula)
+
+3. Navigate to the project root directory, install dependencies and run the project.
 
     ```shell
     user@host:~$ pip install -r requirements.txt
